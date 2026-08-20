@@ -1,0 +1,151 @@
+{
+  "theme_mode": "dark",
+  "typography": {
+    "font_families": {
+      "heading": "Outfit, sans-serif",
+      "body": "Manrope, sans-serif",
+      "monospace": "'IBM Plex Mono', monospace"
+    },
+    "hierarchy": {
+      "h1": "text-5xl sm:text-6xl font-light tracking-tighter text-[#F9E596]",
+      "h2": "text-3xl sm:text-4xl font-normal tracking-tight text-white",
+      "h3": "text-xl sm:text-2xl font-medium text-white",
+      "body": "text-base text-[#A1A1AA] leading-relaxed",
+      "data_numbers": "text-sm sm:text-base font-mono font-semibold tracking-tight text-white",
+      "labels": "text-xs font-mono uppercase tracking-[0.2em] text-[#71717A]"
+    },
+    "instruction": "Use IBM Plex Mono (tabular nums) exclusively for chip amounts, pot sizes, bankrolls, and timers. Outfit for all major headings. Manrope for general reading text."
+  },
+  "colors": {
+    "background": {
+      "base": "#0A0A0B",
+      "surface": "#121214",
+      "surface_elevated": "#1A1A1D"
+    },
+    "primary": {
+      "felt_dark": "#0B2617",
+      "felt_main": "#113A24",
+      "felt_light": "#1B5436"
+    },
+    "accent": {
+      "gold_dark": "#B8912B",
+      "champagne": "#D4AF37",
+      "champagne_light": "#F9E596",
+      "crimson": "#8A1C1C",
+      "emerald": "#22C55E"
+    },
+    "neutral": {
+      "obsidian_100": "#E2E2E5",
+      "obsidian_200": "#C4C4C9",
+      "obsidian_300": "#A1A1AA",
+      "obsidian_400": "#71717A",
+      "obsidian_800": "#27272A",
+      "obsidian_900": "#18181B"
+    },
+    "instruction": "Never use generic violet or bright purple gradients. Focus on deep charcoal/obsidian backgrounds to let the green felt and gold accents pop. Add subtle radial glow (15-20% opacity) behind the table."
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "sm": "0 2px 4px rgba(0,0,0,0.4)",
+      "md": "0 8px 16px rgba(0,0,0,0.6)",
+      "lg": "0 16px 32px rgba(0,0,0,0.8)",
+      "glow_gold": "0 0 15px rgba(212,175,55,0.3)"
+    },
+    "borders": {
+      "subtle": "1px solid rgba(255,255,255,0.05)",
+      "gold_trim": "1px solid rgba(212,175,55,0.3)",
+      "radius_base": "0.5rem",
+      "radius_pill": "9999px"
+    },
+    "textures": {
+      "felt": "Use CSS radial gradients mixed with a subtle SVG noise overlay for the poker table felt.",
+      "grain": "Apply a 2-3% opacity black/white noise overlay across the entire application background."
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "Pill-shaped, bg-[#D4AF37] text-[#18181B] font-semibold, hover:brightness-110, transition-colors duration-200. Used for major calls to action like 'Deposit' or 'Join Table'.",
+      "action_panel": "Sharp or slightly rounded rectangles for game actions (Fold, Call, Raise). Fold should be dark/subdued (bg-[#27272A] text-[#A1A1AA]), Call is neutral-light (bg-[#71717A] text-white), Raise is accented (bg-[#D4AF37] text-[#18181B]).",
+      "preset_bet": "Small, dense chips/buttons above the slider (Min, 1/2, Pot, All-in) using font-mono."
+    },
+    "cards": {
+      "style": "Clean white background with sharp contrasting pips. Large index numbers for readability. Use standard red (#E92C2C) for Hearts/Diamonds, dark charcoal (#1A1A1D) for Spades/Clubs. Subtle shadow-md to pop off the green felt. Build these using pure HTML/Tailwind for crispness."
+    },
+    "chips": {
+      "style": "Stacked CSS/HTML circles. Outer dashed border or striped gradients to simulate chip edges. font-mono text for chip values. Colors based on denomination (e.g., Red 5, Green 25, Black 100). Use Framer Motion to animate chip movement to the pot."
+    },
+    "seats": {
+      "style": "Circular avatars. If active, surround with a gold ring. If it's their turn, the ring acts as a shrinking timer (SVG circle with stroke-dashoffset). Provide a small name/stack badge below the avatar using font-mono bg-black/80 backdrop-blur-md rounded-md p-1."
+    },
+    "lobby_grid": {
+      "style": "High-density data view. Rows or Bento-grid cards showing Table Name, Stakes, Players (e.g. 4/6), Waitlist. Use 'Crystal Glass' style (bg-white/5 backdrop-blur-md) with a subtle gold_trim border on hover."
+    }
+  },
+  "grids_layouts": {
+    "lobby": {
+      "structure": "Sidebar navigation (left) + Dense main grid. Grid should be grid-cols-1 md:grid-cols-2 lg:grid-cols-3 with gap-4 or gap-6."
+    },
+    "poker_table": {
+      "structure": "Heroic centered layout. The main area is a massive flex or grid container centering an oval/pill-shaped 'table' element (e.g., w-[90%] max-w-5xl aspect-[2/1] rounded-[999px]). Seats are positioned absolutely around this oval. Community cards are in the absolute center. Pot size is below community cards."
+    },
+    "action_panel": {
+      "structure": "Fixed at the bottom right or spanning the bottom. Flex container with the slider on top, action buttons below. Padding should be dense (p-4) to maximize table space. Use a dark backdrop-blur panel."
+    }
+  },
+  "motion": {
+    "cards": "Framer motion for dealing: layoutId or initial={scale: 0, x: center} animate={scale: 1, x: position}. 3D flip effect (rotateY) when revealing community cards.",
+    "chips": "Slide from seat to pot (x/y translation) with a slight staggering effect.",
+    "hover": "Subtle -translate-y-0.5 and shadow-glow_gold on interactive buttons/table cards."
+  },
+  "accessibility": {
+    "contrast": "Ensure white text on the dark felt and charcoal backgrounds meets minimum 4.5:1 ratio. Gold text against charcoal should be checked for readability.",
+    "test_ids": "Ensure all interactive elements have data-testid attributes (e.g., data-testid='fold-button', data-testid='table-lobby-card')."
+  },
+  "media": {
+    "image_urls": {
+      "felt_texture": {
+        "url": "https://images.unsplash.com/photo-1756363212483-2a60660fd4c1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwzfHxkYXJrJTIwZ3JlZW4lMjBwb2tlciUyMHRhYmxlJTIwZmVsdCUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzgzODczMjYyfDA&ixlib=rb-4.1.0&q=85",
+        "category": "backgrounds",
+        "description": "Solid green textured background for use in marketing hero or overlay"
+      },
+      "gold_chips": {
+        "url": "https://images.pexels.com/photos/7594196/pexels-photo-7594196.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "category": "marketing",
+        "description": "Stacked yellow casino chips for marketing/bankroll visuals"
+      },
+      "playing_cards": {
+        "url": "https://images.unsplash.com/photo-1771862877468-bcbada32830c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzN8MHwxfHNlYXJjaHwxfHxwbGF5aW5nJTIwY2FyZHMlMjByb3lhbCUyMGZsdXNoJTIwcG9rZXJ8ZW58MHx8fHwxNzg1MTMzNTgyfDA&ixlib=rb-4.1.0&q=85",
+        "category": "marketing",
+        "description": "Scattered playing cards for hero section"
+      }
+    }
+  },
+  "instructions_to_main_agent": [
+    "Use framer-motion heavily for the poker table (dealing cards, moving chips, player turn indicators).",
+    "Build the poker table as an absolute positioned layout. Center the community cards and pot. Map seats to specific degrees/positions around an oval container. Avoid generic grid layouts for the live table.",
+    "Use CSS Grid for the lobby to maintain high density, simulating a professional data dashboard.",
+    "Incorporate lucide-react icons for settings, bankroll, chat, and filters.",
+    "Avoid using generic Shadcn cards for the main poker table view; instead, build custom DOM elements mimicking felt and chip stacks.",
+    "For the slider in the action panel, customize Shadcn's slider or build a custom one with an integrated text input for exact bet amounts.",
+    "Install the required fonts via Google Fonts in the index.html or global CSS (@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Manrope:wght@400;500;600&family=Outfit:wght@300;400;600&display=swap');)."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "DO NOT use complete `transparent` background in header, overlays, any surface that has content under it. Example: Dropdown with transparent background.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Use `sonner` for toasts.",
+    "All interactive and key informational elements MUST include a `data-testid` attribute to facilitate robust automated testing.",
+    "You have .js files not .tsx file, so build components for .js files not for .tsx files."
+  ]
+}

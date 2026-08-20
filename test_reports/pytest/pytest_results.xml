@@ -1,0 +1,1601 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="69" time="125.704" timestamp="2026-08-12T09:59:01.461804+00:00" hostname="agent-env-24d20113-56d6-44f2-8d3b-e19ff1fe0ab5"><testcase classname="tests.test_auth.TestSessionEndpoints" name="test_me_requires_auth" time="0.299" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_join_requires_auth" time="0.344" /><testcase classname="tests.test_auth.TestSessionEndpoints" name="test_me_with_bearer_header" time="0.592" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_join_unknown_table" time="0.594" /><testcase classname="tests.test_auth.TestSessionEndpoints" name="test_ws_token" time="0.594" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_join_buy_in_below_min" time="0.731" /><testcase classname="tests.test_auth.TestSessionEndpoints" name="test_ws_token_unauthenticated" time="0.113" /><testcase classname="tests.test_auth.TestSessionEndpoints" name="test_refresh" time="0.624" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_join_buy_in_above_max" time="0.649" /><testcase classname="tests.test_auth.TestSessionEndpoints" name="test_refresh_without_cookie" time="0.097" /><testcase classname="tests.test_auth.TestSessionEndpoints" name="test_invalid_token_rejected" time="0.094" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_join_zero_buy_in_validation" time="0.687" /><testcase classname="tests.test_auth.TestSessionEndpoints" name="test_logout_clears_session" time="0.582" /><testcase classname="tests.test_poker_engine.TestEvaluator" name="test_category_ordering" time="0.000" /><testcase classname="tests.test_poker_engine.TestEvaluator" name="test_wheel_straight" time="0.000" /><testcase classname="tests.test_poker_engine.TestEvaluator" name="test_wheel_loses_to_six_high_straight" time="0.000" /><testcase classname="tests.test_poker_engine.TestEvaluator" name="test_best_hand_from_seven" time="0.000" /><testcase classname="tests.test_poker_engine.TestEvaluator" name="test_flush_kicker_comparison" time="0.000" /><testcase classname="tests.test_poker_engine.TestEvaluator" name="test_two_pair_kicker" time="0.000" /><testcase classname="tests.test_poker_engine.TestEvaluator" name="test_royal_beats_quads_from_seven" time="0.000" /><testcase classname="tests.test_poker_engine.TestBettingFlow" name="test_blinds_and_deal" time="0.000" /><testcase classname="tests.test_poker_engine.TestBettingFlow" name="test_uncontested_fold_awards_pot" time="0.000" /><testcase classname="tests.test_poker_engine.TestBettingFlow" name="test_big_blind_gets_option_to_raise_preflop" time="0.001"><failure message="AssertionError: BB (seat 2) never got to act preflop; acting order was [0, 1]&#10;assert 2 in [0, 1]&#10; +  where 2 = HandState(hand_id='b8fc2fa5-2528-419d-a13d-5b341b972d74', dealer_seat=0, sb_seat=1, bb_seat=2, small_blind=5, big_blin...ion': 'blind', 'amount': 10}, {'seat': 0, 'action': 'call', 'amount': 10}, {'seat': 1, 'action': 'call', 'amount': 5}]).bb_seat">self = &lt;test_poker_engine.TestBettingFlow object at 0xf9809cc39b50&gt;
+
+    def test_big_blind_gets_option_to_raise_preflop(self):
+        """NLH rule: after SB completes, BB must get the option to act."""
+        g = _game([1000, 1000, 1000])
+        g.start_hand()
+        h = g.hand
+        order = []
+        guard = 0
+        while g.hand and not g.hand.ended and g.hand.street == "preflop" and guard &lt; 10:
+            guard += 1
+            seat = g.hand.to_act
+            order.append(seat)
+            g.act(g.seats[seat].user_id, "call" if g.legal_actions(seat)["to_call"] &gt; 0 else "check")
+&gt;       assert h.bb_seat in order, (
+            f"BB (seat {h.bb_seat}) never got to act preflop; acting order was {order}")
+E       AssertionError: BB (seat 2) never got to act preflop; acting order was [0, 1]
+E       assert 2 in [0, 1]
+E        +  where 2 = HandState(hand_id='b8fc2fa5-2528-419d-a13d-5b341b972d74', dealer_seat=0, sb_seat=1, bb_seat=2, small_blind=5, big_blin...ion': 'blind', 'amount': 10}, {'seat': 0, 'action': 'call', 'amount': 10}, {'seat': 1, 'action': 'call', 'amount': 5}]).bb_seat
+
+tests/test_poker_engine.py:130: AssertionError</failure></testcase><testcase classname="tests.test_poker_engine.TestBettingFlow" name="test_full_hand_to_showdown" time="0.001" /><testcase classname="tests.test_poker_engine.TestBettingFlow" name="test_min_raise_enforced" time="0.000" /><testcase classname="tests.test_poker_engine.TestBettingFlow" name="test_act_out_of_turn_rejected" time="0.000" /><testcase classname="tests.test_poker_engine.TestBettingFlow" name="test_new_hand_can_start_after_previous_ends" time="0.000"><failure message="AssertionError: can_start_hand() is False after hand ended - hand state never reset, so no new hand will ever be dealt&#10;assert False is True&#10; +  where False = can_start_hand()&#10; +    where can_start_hand = &lt;poker.game.PokerGame object at 0xf9809ca68f50&gt;.can_start_hand">self = &lt;test_poker_engine.TestBettingFlow object at 0xf9809cc3b5d0&gt;
+
+    def test_new_hand_can_start_after_previous_ends(self):
+        """After a hand ends the engine must be ready to deal the next one."""
+        g = _game([1000, 1000])
+        g.start_hand()
+        g.act(g.seats[g.hand.to_act].user_id, "fold")
+        assert g.hand.ended is True
+&gt;       assert g.can_start_hand() is True, (
+            "can_start_hand() is False after hand ended - hand state never reset, "
+            "so no new hand will ever be dealt")
+E       AssertionError: can_start_hand() is False after hand ended - hand state never reset, so no new hand will ever be dealt
+E       assert False is True
+E        +  where False = can_start_hand()
+E        +    where can_start_hand = &lt;poker.game.PokerGame object at 0xf9809ca68f50&gt;.can_start_hand
+
+tests/test_poker_engine.py:172: AssertionError</failure></testcase><testcase classname="tests.test_auth.TestRegister" name="test_register_success_sets_cookies_and_bankroll" time="0.592" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_double_join_rejected" time="0.940" /><testcase classname="tests.test_auth.TestRegister" name="test_register_duplicate_email" time="0.637" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_insufficient_bankroll" time="1.302" /><testcase classname="tests.test_auth.TestRegister" name="test_register_duplicate_username" time="0.482" /><testcase classname="tests.test_auth.TestRegister" name="test_register_short_password" time="0.112" /><testcase classname="tests.test_auth.TestRegister" name="test_register_invalid_email" time="0.136" /><testcase classname="tests.test_admin.TestAdminRBAC" name="test_stats_requires_auth" time="0.136" /><testcase classname="tests.test_admin.TestAdminRBAC" name="test_stats_forbidden_for_normal_user" time="0.605" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_join_deducts_and_leave_returns_bankroll" time="1.631" /><testcase classname="tests.test_admin.TestAdminRBAC" name="test_users_forbidden_for_normal_user" time="0.374" /><testcase classname="tests.test_admin.TestAdminRBAC" name="test_bankroll_forbidden_for_normal_user" time="0.402" /><testcase classname="tests.test_admin.TestAdminEndpoints" name="test_stats" time="0.362" /><testcase classname="tests.test_admin.TestAdminEndpoints" name="test_users_list_hides_secrets" time="0.579" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_leave_when_not_seated" time="0.679" /><testcase classname="tests.test_tables.TestJoinLeave" name="test_leave_unknown_table" time="0.731" /><testcase classname="tests.test_admin.TestAdminEndpoints" name="test_bankroll_adjust_persists" time="1.252" /><testcase classname="tests.test_auth.TestLogin" name="test_admin_login" time="0.324" /><testcase classname="tests.test_auth.TestLogin" name="test_login_wrong_password" time="0.339" /><testcase classname="tests.test_auth.TestLogin" name="test_login_unknown_email" time="0.252" /><testcase classname="tests.test_admin.TestAdminEndpoints" name="test_bankroll_unknown_user" time="0.542" /><testcase classname="tests.test_auth.TestLogin" name="test_bruteforce_lockout_after_5_failures" time="2.286"><failure message="AssertionError: no lockout/rate-limit after 6 failed logins, got [401, 401, 401, 401, 401, 401]&#10;assert False&#10; +  where False = any(&lt;generator object TestLogin.test_bruteforce_lockout_after_5_failures.&lt;locals&gt;.&lt;genexpr&gt; at 0xfa5d916ffac0&gt;)">self = &lt;test_auth.TestLogin object at 0xfa5d917a6a90&gt;
+
+    def test_bruteforce_lockout_after_5_failures(self):
+        """Playbook requirement: lockout / rate-limit after 5 failed attempts."""
+        s, user, payload = register_user()
+        codes = []
+        for _ in range(6):
+            r = requests.post(f"{BASE_URL}/api/auth/login", json={
+                "email": payload["email"], "password": "wrong-pass-x"}, timeout=30)
+            codes.append(r.status_code)
+&gt;       assert any(c in (423, 429) for c in codes), (
+            f"no lockout/rate-limit after 6 failed logins, got {codes}")
+E       AssertionError: no lockout/rate-limit after 6 failed logins, got [401, 401, 401, 401, 401, 401]
+E       assert False
+E        +  where False = any(&lt;generator object TestLogin.test_bruteforce_lockout_after_5_failures.&lt;locals&gt;.&lt;genexpr&gt; at 0xfa5d916ffac0&gt;)
+
+tests/test_auth.py:82: AssertionError</failure></testcase><testcase classname="tests.test_poker_engine.TestDeck" name="test_52_unique_cards" time="0.000" /><testcase classname="tests.test_poker_engine.TestDeck" name="test_draw_removes_cards" time="0.000" /><testcase classname="tests.test_poker_engine.TestDeck" name="test_shuffle_randomises" time="0.000" /><testcase classname="tests.test_health" name="test_health" time="0.281" /><testcase classname="tests.test_health" name="test_cors_allows_credentials_with_explicit_origin" time="0.091"><failure message="AssertionError: CORS misconfigured: ACAO=* with ACAC=true - browsers reject wildcard origin when credentials are used&#10;assert not ('*' == '*'&#10;  &#10;    * and 'true' == 'true'&#10;  &#10;    true)">def test_cors_allows_credentials_with_explicit_origin():
+        """allow_credentials=True requires an explicit origin, not '*'."""
+        r = requests.get(f"{BASE_URL}/api/health", headers={"Origin": BASE_URL}, timeout=30)
+        acao = r.headers.get("access-control-allow-origin")
+        acac = r.headers.get("access-control-allow-credentials")
+        assert acao is not None, "no Access-Control-Allow-Origin header returned"
+&gt;       assert not (acao == "*" and acac == "true"), (
+            f"CORS misconfigured: ACAO={acao} with ACAC={acac} - browsers reject "
+            "wildcard origin when credentials are used"
+        )
+E       AssertionError: CORS misconfigured: ACAO=* with ACAC=true - browsers reject wildcard origin when credentials are used
+E       assert not ('*' == '*'
+E         
+E           * and 'true' == 'true'
+E         
+E           true)
+
+tests/test_health.py:21: AssertionError</failure></testcase><testcase classname="tests.test_table_runtime" name="test_post_action_flow_does_not_deadlock_table_lock" time="8.007"><failure message="Failed: DEADLOCK: _post_action_flow() re-enters `async with self.lock` while the caller (server.py ws_table / _turn_watchdog) already holds it. asyncio.Lock is NOT reentrant, so the table lock is held forever -&gt; no further hands, join/leave hang with 504s.">fut = &lt;Task cancelled name='Task-3' coro=&lt;TableRuntime._post_action_flow() done, defined at /app/backend/table_manager.py:100&gt;&gt;
+timeout = 8
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+    
+        Coroutine will be wrapped in Task.
+    
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+    
+        If the wait is cancelled, the task is also cancelled.
+    
+        This function is a coroutine.
+        """
+        loop = events.get_running_loop()
+    
+        if timeout is None:
+            return await fut
+    
+        if timeout &lt;= 0:
+            fut = ensure_future(fut, loop=loop)
+    
+            if fut.done():
+                return fut.result()
+    
+            await _cancel_and_wait(fut, loop=loop)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise exceptions.TimeoutError() from exc
+    
+        waiter = loop.create_future()
+        timeout_handle = loop.call_later(timeout, _release_waiter, waiter)
+        cb = functools.partial(_release_waiter, waiter)
+    
+        fut = ensure_future(fut, loop=loop)
+        fut.add_done_callback(cb)
+    
+        try:
+            # wait until the future completes or the timeout
+            try:
+                await waiter
+            except exceptions.CancelledError:
+                if fut.done():
+                    return fut.result()
+                else:
+                    fut.remove_done_callback(cb)
+                    # We must ensure that the task is not running
+                    # after wait_for() returns.
+                    # See https://bugs.python.org/issue32751
+                    await _cancel_and_wait(fut, loop=loop)
+                    raise
+    
+            if fut.done():
+                return fut.result()
+            else:
+                fut.remove_done_callback(cb)
+                # We must ensure that the task is not running
+                # after wait_for() returns.
+                # See https://bugs.python.org/issue32751
+                await _cancel_and_wait(fut, loop=loop)
+                # In case task cancellation failed with some
+                # exception, we should re-raise it
+                # See https://bugs.python.org/issue40607
+                try:
+&gt;                   return fut.result()
+                           ^^^^^^^^^^^^
+
+/usr/local/lib/python3.11/asyncio/tasks.py:500: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+table_manager.py:106: in _post_action_flow
+    async with self.lock:
+/usr/local/lib/python3.11/asyncio/locks.py:15: in __aenter__
+    await self.acquire()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;asyncio.locks.Lock object at 0xf9809cb06710 [unlocked]&gt;
+
+    async def acquire(self):
+        """Acquire a lock.
+    
+        This method blocks until the lock is unlocked, then sets it to
+        locked and returns True.
+        """
+        if (not self._locked and (self._waiters is None or
+                all(w.cancelled() for w in self._waiters))):
+            self._locked = True
+            return True
+    
+        if self._waiters is None:
+            self._waiters = collections.deque()
+        fut = self._get_loop().create_future()
+        self._waiters.append(fut)
+    
+        # Finally block should be called before the CancelledError
+        # handling as we don't want CancelledError to call
+        # _wake_up_first() and attempt to wake up itself.
+        try:
+            try:
+&gt;               await fut
+E               asyncio.exceptions.CancelledError
+
+/usr/local/lib/python3.11/asyncio/locks.py:114: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+    def test_post_action_flow_does_not_deadlock_table_lock():
+        async def scenario():
+            t = TableRuntime(dict(META), _StubDB())
+            t.game.sit("u1", "p1", 0, 500)
+            t.game.sit("u2", "p2", 1, 500)
+            async with t.lock:
+                await t.maybe_start_hand()
+            assert t.game.hand is not None
+            # simulate the WebSocket handler: it holds the lock while acting,
+            # then calls _post_action_flow (exactly as server.py ws_table does)
+            actor_seat = t.game.hand.to_act
+            actor = t.game.seats[actor_seat].user_id
+            async with t.lock:
+                t.game.act(actor, "fold")
+                await asyncio.wait_for(t._post_action_flow(), timeout=8)
+            # table must be usable afterwards
+            await asyncio.wait_for(_acquire(t.lock), timeout=3)
+    
+        async def _acquire(lock):
+            async with lock:
+                return True
+    
+        try:
+&gt;           asyncio.run(scenario())
+
+tests/test_table_runtime.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.11/asyncio/runners.py:190: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/test_table_runtime.py:47: in scenario
+    await asyncio.wait_for(t._post_action_flow(), timeout=8)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fut = &lt;Task cancelled name='Task-3' coro=&lt;TableRuntime._post_action_flow() done, defined at /app/backend/table_manager.py:100&gt;&gt;
+timeout = 8
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+    
+        Coroutine will be wrapped in Task.
+    
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+    
+        If the wait is cancelled, the task is also cancelled.
+    
+        This function is a coroutine.
+        """
+        loop = events.get_running_loop()
+    
+        if timeout is None:
+            return await fut
+    
+        if timeout &lt;= 0:
+            fut = ensure_future(fut, loop=loop)
+    
+            if fut.done():
+                return fut.result()
+    
+            await _cancel_and_wait(fut, loop=loop)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise exceptions.TimeoutError() from exc
+    
+        waiter = loop.create_future()
+        timeout_handle = loop.call_later(timeout, _release_waiter, waiter)
+        cb = functools.partial(_release_waiter, waiter)
+    
+        fut = ensure_future(fut, loop=loop)
+        fut.add_done_callback(cb)
+    
+        try:
+            # wait until the future completes or the timeout
+            try:
+                await waiter
+            except exceptions.CancelledError:
+                if fut.done():
+                    return fut.result()
+                else:
+                    fut.remove_done_callback(cb)
+                    # We must ensure that the task is not running
+                    # after wait_for() returns.
+                    # See https://bugs.python.org/issue32751
+                    await _cancel_and_wait(fut, loop=loop)
+                    raise
+    
+            if fut.done():
+                return fut.result()
+            else:
+                fut.remove_done_callback(cb)
+                # We must ensure that the task is not running
+                # after wait_for() returns.
+                # See https://bugs.python.org/issue32751
+                await _cancel_and_wait(fut, loop=loop)
+                # In case task cancellation failed with some
+                # exception, we should re-raise it
+                # See https://bugs.python.org/issue40607
+                try:
+                    return fut.result()
+                except exceptions.CancelledError as exc:
+&gt;                   raise exceptions.TimeoutError() from exc
+E                   TimeoutError
+
+/usr/local/lib/python3.11/asyncio/tasks.py:502: TimeoutError
+
+During handling of the above exception, another exception occurred:
+
+    def test_post_action_flow_does_not_deadlock_table_lock():
+        async def scenario():
+            t = TableRuntime(dict(META), _StubDB())
+            t.game.sit("u1", "p1", 0, 500)
+            t.game.sit("u2", "p2", 1, 500)
+            async with t.lock:
+                await t.maybe_start_hand()
+            assert t.game.hand is not None
+            # simulate the WebSocket handler: it holds the lock while acting,
+            # then calls _post_action_flow (exactly as server.py ws_table does)
+            actor_seat = t.game.hand.to_act
+            actor = t.game.seats[actor_seat].user_id
+            async with t.lock:
+                t.game.act(actor, "fold")
+                await asyncio.wait_for(t._post_action_flow(), timeout=8)
+            # table must be usable afterwards
+            await asyncio.wait_for(_acquire(t.lock), timeout=3)
+    
+        async def _acquire(lock):
+            async with lock:
+                return True
+    
+        try:
+            asyncio.run(scenario())
+        except asyncio.TimeoutError:
+&gt;           pytest.fail(
+                "DEADLOCK: _post_action_flow() re-enters `async with self.lock` while the "
+                "caller (server.py ws_table / _turn_watchdog) already holds it. asyncio.Lock "
+                "is NOT reentrant, so the table lock is held forever -&gt; no further hands, "
+                "join/leave hang with 504s."
+            )
+E           Failed: DEADLOCK: _post_action_flow() re-enters `async with self.lock` while the caller (server.py ws_table / _turn_watchdog) already holds it. asyncio.Lock is NOT reentrant, so the table lock is held forever -&gt; no further hands, join/leave hang with 504s.
+
+tests/test_table_runtime.py:58: Failed</failure></testcase><testcase classname="tests.test_ws_gameplay.TestWebSocketAuth" name="test_ws_rejects_invalid_token" time="0.275" /><testcase classname="tests.test_ws_gameplay.TestWebSocketAuth" name="test_ws_missing_token_rejected" time="0.254" /><testcase classname="tests.test_ws_gameplay.TestWebSocketAuth" name="test_ws_unknown_table" time="0.530" /><testcase classname="tests.test_tables.TestHandHistory" name="test_hands_mine_requires_auth" time="0.095" /><testcase classname="tests.test_tables.TestHandHistory" name="test_hands_mine_returns_list" time="0.361" /><testcase classname="tests.test_bcrypt_and_seed" name="test_admin_seeded_with_bcrypt_2b_hash" time="0.009" /><testcase classname="tests.test_midhand_join" name="test_player_seated_midhand_is_not_dealt_into_current_hand" time="0.000"><failure message="AssertionError: BUG: mid-hand joiner has folded=False, so the engine treats a player with no hole cards as live in the current hand (can be given action / reach showdown)&#10;assert False is True&#10; +  where False = Player(user_id='u3', username='p3', seat=2, stack=500, hole_cards=[], bet=0, total_committed=0, folded=False, all_in=False, sitting_out=False, connected=True, last_action=None).folded">def test_player_seated_midhand_is_not_dealt_into_current_hand():
+        g = PokerGame("t", 5, 10, 6)
+        g.sit("u1", "p1", 0, 500)
+        g.sit("u2", "p2", 1, 500)
+        g.start_hand()
+        # third player buys in mid-hand
+        g.sit("u3", "p3", 2, 500)
+        late = g.seats[2]
+        assert late.hole_cards == [], "late joiner should have no cards"
+&gt;       assert late.folded is True, (
+            "BUG: mid-hand joiner has folded=False, so the engine treats a player with no "
+            "hole cards as live in the current hand (can be given action / reach showdown)"
+        )
+E       AssertionError: BUG: mid-hand joiner has folded=False, so the engine treats a player with no hole cards as live in the current hand (can be given action / reach showdown)
+E       assert False is True
+E        +  where False = Player(user_id='u3', username='p3', seat=2, stack=500, hole_cards=[], bet=0, total_committed=0, folded=False, all_in=False, sitting_out=False, connected=True, last_action=None).folded
+
+tests/test_midhand_join.py:19: AssertionError</failure></testcase><testcase classname="tests.test_poker_engine.TestSidePots" name="test_three_way_two_all_ins_side_pot_distribution" time="0.001" /><testcase classname="tests.test_ws_gameplay.TestTwoPlayerHand" name="test_two_player_hand_plays_to_completion" time="64.867"><failure message="requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='poker-play-ca.preview.emergentagent.com', port=443): Read timed out. (read timeout=30)">self = &lt;test_ws_gameplay.TestTwoPlayerHand object at 0xfa5d9050f490&gt;
+
+    def test_two_player_hand_plays_to_completion(self):
+        table = pick_empty_table()
+        tid = table["id"]
+        buy_in = table["buy_in_min"]
+    
+        s1, u1, _ = register_user()
+        s2, u2, _ = register_user()
+        t1, t2 = ws_token(s1), ws_token(s2)
+    
+        ws1 = connect(f"{WS_BASE}/api/ws/table/{tid}?token={t1}")
+        ws2 = connect(f"{WS_BASE}/api/ws/table/{tid}?token={t2}")
+        try:
+            assert recv_state(ws1) is not None
+            assert recv_state(ws2) is not None
+    
+            r1 = s1.post(f"{BASE_URL}/api/tables/{tid}/join", json={"buy_in": buy_in}, timeout=30)
+            assert r1.status_code == 200, r1.text[:300]
+            r2 = s2.post(f"{BASE_URL}/api/tables/{tid}/join", json={"buy_in": buy_in}, timeout=30)
+            assert r2.status_code == 200, r2.text[:300]
+    
+            # bankroll debited
+            assert me_bankroll(s1) == 10000 - buy_in
+            assert me_bankroll(s2) == 10000 - buy_in
+    
+            st1 = drain_latest_state(ws1)
+            st2 = drain_latest_state(ws2)
+            assert st1 and st2, "no state broadcast after join"
+            assert st1["hand"] is not None, "hand did not auto-start with 2 seated players"
+            hand = st1["hand"]
+            assert hand["street"] == "preflop"
+            assert hand["pot"] == table["small_blind"] + table["big_blind"], (
+                f"blinds not posted correctly: pot={hand['pot']}")
+    
+            # ---- hole card privacy ----
+            def hole(state, uid):
+                return next(p["hole_cards"] for p in state["players"] if p["user_id"] == uid)
+    
+            assert len(hole(st1, u1["id"])) == 2 and "?" not in hole(st1, u1["id"]), \
+                "player 1 did not receive own hole cards"
+            assert hole(st1, u2["id"]) == ["?", "?"], \
+                f"LEAK: player1 sees opponent hole cards {hole(st1, u2['id'])}"
+            assert hole(st2, u1["id"]) == ["?", "?"], \
+                f"LEAK: player2 sees opponent hole cards {hole(st2, u1['id'])}"
+    
+            sock = {u1["id"]: ws1, u2["id"]: ws2}
+            states = {u1["id"]: st1, u2["id"]: st2}
+            boards_seen = set()
+            streets_seen = set()
+    
+            # ---- play the hand: call/check down to showdown ----
+            for _ in range(40):
+                cur = states[u1["id"]]
+                if cur["hand"] and cur["hand"]["ended"]:
+                    break
+                to_act = cur["hand"]["to_act"]
+                actor = next(p["user_id"] for p in cur["players"] if p["seat"] == to_act)
+                legal = states[actor].get("legal_actions") or {}
+                assert legal, f"no legal_actions delivered to acting player {actor}"
+                action = "check" if legal.get("can_check") else "call"
+                sock[actor].send(json.dumps({"type": "action", "action": action}))
+                time.sleep(0.4)
+                for uid in (u1["id"], u2["id"]):
+                    new = drain_latest_state(sock[uid], timeout=5)
+                    if new:
+                        states[uid] = new
+                st = states[u1["id"]]
+                if st["hand"]:
+                    streets_seen.add(st["hand"]["street"])
+                    boards_seen.add(tuple(st["hand"]["board"]))
+    
+            final1 = states[u1["id"]]
+            final2 = states[u2["id"]]
+            assert final1["hand"]["ended"], f"hand never ended; streets seen={streets_seen}"
+            assert {"flop", "turn", "river"} &lt;= streets_seen or final1["hand"]["board"], (
+                f"community cards never dealt; streets seen={streets_seen}")
+            assert len(final1["hand"]["board"]) == 5, (
+                f"expected 5 board cards at showdown, got {final1['hand']['board']}")
+            assert final1["hand"]["winners"], "no winner declared at showdown"
+            # both clients in sync
+            assert final1["hand"]["hand_id"] == final2["hand"]["hand_id"]
+            assert final1["hand"]["winners"] == final2["hand"]["winners"], "clients out of sync"
+            # showdown reveals both hands
+            assert all(
+                "?" not in p["hole_cards"] for p in final1["players"] if not p["folded"]
+            ), "hole cards not revealed at showdown"
+            # chips awarded
+            total_stacks = sum(p["stack"] for p in final1["players"])
+            assert total_stacks == 2 * buy_in, (
+                f"chip conservation broken: {total_stacks} != {2 * buy_in}")
+    
+            # ---- chat sync ----
+            ws1.send(json.dumps({"type": "chat", "text": "TEST_hello from p1"}))
+            time.sleep(0.5)
+            chat_state = drain_latest_state(ws2, timeout=6)
+&gt;           assert chat_state and any(
+                c["text"] == "TEST_hello from p1" for c in chat_state.get("chat", [])
+            ), "chat message not delivered to other client"
+E           AssertionError: chat message not delivered to other client
+E           assert (None)
+
+tests/test_ws_gameplay.py:187: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+self = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xfa5d90226b50&gt;
+conn = &lt;HTTPSConnection(host='poker-play-ca.preview.emergentagent.com', port=443) at 0xfa5d90224d90&gt;
+method = 'POST', url = '/api/tables/b8ff7795-1148-40e5-832a-a125b4caadeb/leave'
+body = None
+headers = {'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-aliv...PB9w3Z6BKdPbiCNF3P3hIF4nBZwOHTcqNINfXGFEOHWa222uOvtt7cz1u79hw8Sv8ViUQuvwN8Ojuc0yMw3NB5yLIHFCRe', 'Content-Length': '0'}
+retries = Retry(total=0, connect=None, read=False, redirect=None, status=None)
+timeout = Timeout(connect=30, read=30, total=None), chunked = False
+response_conn = &lt;HTTPSConnection(host='poker-play-ca.preview.emergentagent.com', port=443) at 0xfa5d90224d90&gt;
+preload_content = False, decode_content = False, enforce_content_length = True
+
+    def _make_request(
+        self,
+        conn: BaseHTTPConnection,
+        method: str,
+        url: str,
+        body: _TYPE_BODY | None = None,
+        headers: typing.Mapping[str, str] | None = None,
+        retries: Retry | None = None,
+        timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
+        chunked: bool = False,
+        response_conn: BaseHTTPConnection | None = None,
+        preload_content: bool = True,
+        decode_content: bool = True,
+        enforce_content_length: bool = True,
+    ) -&gt; BaseHTTPResponse:
+        """
+        Perform a request on a given urllib connection object taken from our
+        pool.
+    
+        :param conn:
+            a connection from one of our connection pools
+    
+        :param method:
+            HTTP request method (such as GET, POST, PUT, etc.)
+    
+        :param url:
+            The URL to perform the request on.
+    
+        :param body:
+            Data to send in the request body, either :class:`str`, :class:`bytes`,
+            an iterable of :class:`str`/:class:`bytes`, or a file-like object.
+    
+        :param headers:
+            Dictionary of custom headers to send, such as User-Agent,
+            If-None-Match, etc. If None, pool headers are used. If provided,
+            these headers completely replace any pool-specific headers.
+    
+        :param retries:
+            Configure the number of retries to allow before raising a
+            :class:`~urllib3.exceptions.MaxRetryError` exception.
+    
+            Pass ``None`` to retry until you receive a response. Pass a
+            :class:`~urllib3.util.retry.Retry` object for fine-grained control
+            over different types of retries.
+            Pass an integer number to retry connection errors that many times,
+            but no other types of errors. Pass zero to never retry.
+    
+            If ``False``, then retries are disabled and any exception is raised
+            immediately. Also, instead of raising a MaxRetryError on redirects,
+            the redirect response will be returned.
+    
+        :type retries: :class:`~urllib3.util.retry.Retry`, False, or an int.
+    
+        :param timeout:
+            If specified, overrides the default timeout for this one
+            request. It may be a float (in seconds) or an instance of
+            :class:`urllib3.util.Timeout`.
+    
+        :param chunked:
+            If True, urllib3 will send the body using chunked transfer
+            encoding. Otherwise, urllib3 will send the body using the standard
+            content-length form. Defaults to False.
+    
+        :param response_conn:
+            Set this to ``None`` if you will handle releasing the connection or
+            set the connection to have the response release it.
+    
+        :param preload_content:
+          If True, the response's body will be preloaded during construction.
+    
+        :param decode_content:
+            If True, will attempt to decode the body based on the
+            'content-encoding' header.
+    
+        :param enforce_content_length:
+            Enforce content length checking. Body returned by server must match
+            value of Content-Length header, if present. Otherwise, raise error.
+        """
+        self.num_requests += 1
+    
+        timeout_obj = self._get_timeout(timeout)
+        timeout_obj.start_connect()
+        conn.timeout = Timeout.resolve_default_timeout(timeout_obj.connect_timeout)
+    
+        try:
+            # Trigger any extra validation we need to do.
+            try:
+                self._validate_conn(conn)
+            except (SocketTimeout, BaseSSLError) as e:
+                self._raise_timeout(err=e, url=url, timeout_value=conn.timeout)
+                raise
+    
+        # _validate_conn() starts the connection to an HTTPS proxy
+        # so we need to wrap errors with 'ProxyError' here too.
+        except (
+            OSError,
+            NewConnectionError,
+            TimeoutError,
+            BaseSSLError,
+            CertificateError,
+            SSLError,
+        ) as e:
+            new_e: Exception = e
+            if isinstance(e, (BaseSSLError, CertificateError)):
+                new_e = SSLError(e)
+            # If the connection didn't successfully connect to it's proxy
+            # then there
+            if isinstance(
+                new_e, (OSError, NewConnectionError, TimeoutError, SSLError)
+            ) and (conn and conn.proxy and not conn.has_connected_to_proxy):
+                new_e = _wrap_proxy_error(new_e, conn.proxy.scheme)
+            raise new_e
+    
+        # conn.request() calls http.client.*.request, not the method in
+        # urllib3.request. It also calls makefile (recv) on the socket.
+        try:
+            conn.request(
+                method,
+                url,
+                body=body,
+                headers=headers,
+                chunked=chunked,
+                preload_content=preload_content,
+                decode_content=decode_content,
+                enforce_content_length=enforce_content_length,
+            )
+    
+        # We are swallowing BrokenPipeError (errno.EPIPE) since the server is
+        # legitimately able to close the connection after sending a valid response.
+        # With this behaviour, the received response is still readable.
+        except BrokenPipeError:
+            pass
+        except OSError as e:
+            # MacOS/Linux
+            # EPROTOTYPE and ECONNRESET are needed on macOS
+            # https://erickt.github.io/blog/2014/11/19/adventures-in-debugging-a-potential-osx-kernel-bug/
+            # Condition changed later to emit ECONNRESET instead of only EPROTOTYPE.
+            if e.errno != errno.EPROTOTYPE and e.errno != errno.ECONNRESET:
+                raise
+    
+        # Reset the timeout for the recv() on the socket
+        read_timeout = timeout_obj.read_timeout
+    
+        if not conn.is_closed:
+            # In Python 3 socket.py will catch EAGAIN and return None when you
+            # try and read into the file pointer created by http.client, which
+            # instead raises a BadStatusLine exception. Instead of catching
+            # the exception and assuming all BadStatusLine exceptions are read
+            # timeouts, check for a zero timeout before making the request.
+            if read_timeout == 0:
+                raise ReadTimeoutError(
+                    self, url, f"Read timed out. (read timeout={read_timeout})"
+                )
+            conn.timeout = read_timeout
+    
+        # Receive the response from the server
+        try:
+&gt;           response = conn.getresponse()
+                       ^^^^^^^^^^^^^^^^^^
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:534: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:571: in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:1415: in getresponse
+    response.begin()
+/usr/local/lib/python3.11/http/client.py:330: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:291: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/socket.py:718: in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/ssl.py:1314: in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;ssl.SSLSocket [closed] fd=-1, family=2, type=1, proto=6&gt;, len = 8192
+buffer = &lt;memory at 0xfa5d904fdb40&gt;
+
+    def read(self, len=1024, buffer=None):
+        """Read up to LEN bytes and return them.
+        Return zero-length string on EOF."""
+    
+        self._checkClosed()
+        if self._sslobj is None:
+            raise ValueError("Read on closed or unwrapped SSL socket.")
+        try:
+            if buffer is not None:
+&gt;               return self._sslobj.read(len, buffer)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               TimeoutError: The read operation timed out
+
+/usr/local/lib/python3.11/ssl.py:1166: TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xfa5d902fa810&gt;
+request = &lt;PreparedRequest [POST]&gt;, stream = False, timeout = 30, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+&gt;           resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:696: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:842: in urlopen
+    retries = retries.increment(
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:498: in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/util/util.py:39: in reraise
+    raise value
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:788: in urlopen
+    response = self._make_request(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:536: in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xfa5d90226b50&gt;
+err = TimeoutError('The read operation timed out')
+url = '/api/tables/b8ff7795-1148-40e5-832a-a125b4caadeb/leave'
+timeout_value = 30
+
+    def _raise_timeout(
+        self,
+        err: BaseSSLError | OSError | SocketTimeout,
+        url: str,
+        timeout_value: _TYPE_TIMEOUT | None,
+    ) -&gt; None:
+        """Is the error actually a timeout? Will raise a ReadTimeout or pass"""
+    
+        if isinstance(err, SocketTimeout):
+&gt;           raise ReadTimeoutError(
+                self, url, f"Read timed out. (read timeout={timeout_value})"
+            ) from err
+E           urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='poker-play-ca.preview.emergentagent.com', port=443): Read timed out. (read timeout=30)
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:367: ReadTimeoutError
+
+During handling of the above exception, another exception occurred:
+
+self = &lt;test_ws_gameplay.TestTwoPlayerHand object at 0xfa5d9050f490&gt;
+
+    def test_two_player_hand_plays_to_completion(self):
+        table = pick_empty_table()
+        tid = table["id"]
+        buy_in = table["buy_in_min"]
+    
+        s1, u1, _ = register_user()
+        s2, u2, _ = register_user()
+        t1, t2 = ws_token(s1), ws_token(s2)
+    
+        ws1 = connect(f"{WS_BASE}/api/ws/table/{tid}?token={t1}")
+        ws2 = connect(f"{WS_BASE}/api/ws/table/{tid}?token={t2}")
+        try:
+            assert recv_state(ws1) is not None
+            assert recv_state(ws2) is not None
+    
+            r1 = s1.post(f"{BASE_URL}/api/tables/{tid}/join", json={"buy_in": buy_in}, timeout=30)
+            assert r1.status_code == 200, r1.text[:300]
+            r2 = s2.post(f"{BASE_URL}/api/tables/{tid}/join", json={"buy_in": buy_in}, timeout=30)
+            assert r2.status_code == 200, r2.text[:300]
+    
+            # bankroll debited
+            assert me_bankroll(s1) == 10000 - buy_in
+            assert me_bankroll(s2) == 10000 - buy_in
+    
+            st1 = drain_latest_state(ws1)
+            st2 = drain_latest_state(ws2)
+            assert st1 and st2, "no state broadcast after join"
+            assert st1["hand"] is not None, "hand did not auto-start with 2 seated players"
+            hand = st1["hand"]
+            assert hand["street"] == "preflop"
+            assert hand["pot"] == table["small_blind"] + table["big_blind"], (
+                f"blinds not posted correctly: pot={hand['pot']}")
+    
+            # ---- hole card privacy ----
+            def hole(state, uid):
+                return next(p["hole_cards"] for p in state["players"] if p["user_id"] == uid)
+    
+            assert len(hole(st1, u1["id"])) == 2 and "?" not in hole(st1, u1["id"]), \
+                "player 1 did not receive own hole cards"
+            assert hole(st1, u2["id"]) == ["?", "?"], \
+                f"LEAK: player1 sees opponent hole cards {hole(st1, u2['id'])}"
+            assert hole(st2, u1["id"]) == ["?", "?"], \
+                f"LEAK: player2 sees opponent hole cards {hole(st2, u1['id'])}"
+    
+            sock = {u1["id"]: ws1, u2["id"]: ws2}
+            states = {u1["id"]: st1, u2["id"]: st2}
+            boards_seen = set()
+            streets_seen = set()
+    
+            # ---- play the hand: call/check down to showdown ----
+            for _ in range(40):
+                cur = states[u1["id"]]
+                if cur["hand"] and cur["hand"]["ended"]:
+                    break
+                to_act = cur["hand"]["to_act"]
+                actor = next(p["user_id"] for p in cur["players"] if p["seat"] == to_act)
+                legal = states[actor].get("legal_actions") or {}
+                assert legal, f"no legal_actions delivered to acting player {actor}"
+                action = "check" if legal.get("can_check") else "call"
+                sock[actor].send(json.dumps({"type": "action", "action": action}))
+                time.sleep(0.4)
+                for uid in (u1["id"], u2["id"]):
+                    new = drain_latest_state(sock[uid], timeout=5)
+                    if new:
+                        states[uid] = new
+                st = states[u1["id"]]
+                if st["hand"]:
+                    streets_seen.add(st["hand"]["street"])
+                    boards_seen.add(tuple(st["hand"]["board"]))
+    
+            final1 = states[u1["id"]]
+            final2 = states[u2["id"]]
+            assert final1["hand"]["ended"], f"hand never ended; streets seen={streets_seen}"
+            assert {"flop", "turn", "river"} &lt;= streets_seen or final1["hand"]["board"], (
+                f"community cards never dealt; streets seen={streets_seen}")
+            assert len(final1["hand"]["board"]) == 5, (
+                f"expected 5 board cards at showdown, got {final1['hand']['board']}")
+            assert final1["hand"]["winners"], "no winner declared at showdown"
+            # both clients in sync
+            assert final1["hand"]["hand_id"] == final2["hand"]["hand_id"]
+            assert final1["hand"]["winners"] == final2["hand"]["winners"], "clients out of sync"
+            # showdown reveals both hands
+            assert all(
+                "?" not in p["hole_cards"] for p in final1["players"] if not p["folded"]
+            ), "hole cards not revealed at showdown"
+            # chips awarded
+            total_stacks = sum(p["stack"] for p in final1["players"])
+            assert total_stacks == 2 * buy_in, (
+                f"chip conservation broken: {total_stacks} != {2 * buy_in}")
+    
+            # ---- chat sync ----
+            ws1.send(json.dumps({"type": "chat", "text": "TEST_hello from p1"}))
+            time.sleep(0.5)
+            chat_state = drain_latest_state(ws2, timeout=6)
+            assert chat_state and any(
+                c["text"] == "TEST_hello from p1" for c in chat_state.get("chat", [])
+            ), "chat message not delivered to other client"
+    
+            # ---- next hand should start automatically after the 3s delay ----
+            time.sleep(5)
+            nxt = drain_latest_state(ws1, timeout=6) or states[u1["id"]]
+            self._next_hand_started = (
+                nxt["hand"] is not None and not nxt["hand"]["ended"]
+            )
+    
+            # ---- hand history persisted ----
+            hands = s1.get(f"{BASE_URL}/api/hands/mine", timeout=30).json()
+            assert isinstance(hands, list) and len(hands) &gt;= 1, "hand not persisted to history"
+            assert any(h["id"] == final1["hand"]["hand_id"] for h in hands), \
+                "played hand missing from /api/hands/mine"
+            assert all("_id" not in h for h in hands)
+    
+            assert self._next_hand_started, (
+                "BUG: no new hand started after previous hand ended - table is stuck "
+                "(PokerGame.hand is never reset to None)")
+        finally:
+            try:
+                ws1.close()
+                ws2.close()
+            except Exception:
+                pass
+&gt;           s1.post(f"{BASE_URL}/api/tables/{tid}/leave", timeout=30)
+
+tests/test_ws_gameplay.py:214: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:651: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:784: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xfa5d902fa810&gt;
+request = &lt;PreparedRequest [POST]&gt;, stream = False, timeout = 30, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+            resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+    
+        except (ProtocolError, OSError) as err:
+            raise ConnectionError(err, request=request)
+    
+        except MaxRetryError as e:
+            if isinstance(e.reason, ConnectTimeoutError):
+                # TODO: Remove this in 3.0.0: see #2811
+                if not isinstance(e.reason, NewConnectionError):
+                    raise ConnectTimeout(e, request=request)
+    
+            if isinstance(e.reason, ResponseError):
+                raise RetryError(e, request=request)
+    
+            if isinstance(e.reason, _ProxyError):
+                raise ProxyError(e, request=request)
+    
+            if isinstance(e.reason, _SSLError):
+                # This branch is for urllib3 v1.22 and later.
+                raise SSLError(e, request=request)
+    
+            raise ConnectionError(e, request=request)
+    
+        except ClosedPoolError as e:
+            raise ConnectionError(e, request=request)
+    
+        except _ProxyError as e:
+            raise ProxyError(e)
+    
+        except (_SSLError, _HTTPError) as e:
+            if isinstance(e, _SSLError):
+                # This branch is for urllib3 versions earlier than v1.22
+                raise SSLError(e, request=request)
+            elif isinstance(e, ReadTimeoutError):
+&gt;               raise ReadTimeout(e, request=request)
+E               requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='poker-play-ca.preview.emergentagent.com', port=443): Read timed out. (read timeout=30)
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:742: ReadTimeout</failure></testcase><testcase classname="tests.test_table_runtime" name="test_new_hand_starts_after_hand_ends" time="0.001"><failure message="AssertionError: no second hand dealt: PokerGame.hand is never reset to None after a hand ends, so can_start_hand() stays False forever&#10;assert (HandState(hand_id='2a110f18-9936-4391-accf-17c5503f4847', dealer_seat=0, sb_seat=0, bb_seat=1, small_blind=5, big_blin...eat': 0, 'action': 'blind', 'amount': 5}, {'seat': 1, 'action': 'blind', 'amount': 10}, {'seat': 0, 'action': 'fold'}]) is not None and '2a110f18-9936-4391-accf-17c5503f4847' != '2a110f18-9936-4391-accf-17c5503f4847')&#10; +  where HandState(hand_id='2a110f18-9936-4391-accf-17c5503f4847', dealer_seat=0, sb_seat=0, bb_seat=1, small_blind=5, big_blin...eat': 0, 'action': 'blind', 'amount': 5}, {'seat': 1, 'action': 'blind', 'amount': 10}, {'seat': 0, 'action': 'fold'}]) = &lt;poker.game.PokerGame object at 0xf9809ca6b110&gt;.hand&#10; +    where &lt;poker.game.PokerGame object at 0xf9809ca6b110&gt; = &lt;table_manager.TableRuntime object at 0xf9809ca6b910&gt;.game&#10; +  and   '2a110f18-9936-4391-accf-17c5503f4847' = HandState(hand_id='2a110f18-9936-4391-accf-17c5503f4847', dealer_seat=0, sb_seat=0, bb_seat=1, small_blind=5, big_blin...eat': 0, 'action': 'blind', 'amount': 5}, {'seat': 1, 'action': 'blind', 'amount': 10}, {'seat': 0, 'action': 'fold'}]).hand_id&#10; +    where HandState(hand_id='2a110f18-9936-4391-accf-17c5503f4847', dealer_seat=0, sb_seat=0, bb_seat=1, small_blind=5, big_blin...eat': 0, 'action': 'blind', 'amount': 5}, {'seat': 1, 'action': 'blind', 'amount': 10}, {'seat': 0, 'action': 'fold'}]) = &lt;poker.game.PokerGame object at 0xf9809ca6b110&gt;.hand&#10; +      where &lt;poker.game.PokerGame object at 0xf9809ca6b110&gt; = &lt;table_manager.TableRuntime object at 0xf9809ca6b910&gt;.game">def test_new_hand_starts_after_hand_ends():
+        async def scenario():
+            t = TableRuntime(dict(META), _StubDB())
+            t.game.sit("u1", "p1", 0, 500)
+            t.game.sit("u2", "p2", 1, 500)
+            await t.maybe_start_hand()
+            first = t.game.hand.hand_id
+            actor = t.game.seats[t.game.hand.to_act].user_id
+            t.game.act(actor, "fold")
+            assert t.game.hand.ended
+            await t.maybe_start_hand()
+            assert t.game.hand is not None and t.game.hand.hand_id != first, (
+                "no second hand dealt: PokerGame.hand is never reset to None after a hand "
+                "ends, so can_start_hand() stays False forever"
+            )
+    
+&gt;       asyncio.run(scenario())
+
+tests/test_table_runtime.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.11/asyncio/runners.py:190: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    async def scenario():
+        t = TableRuntime(dict(META), _StubDB())
+        t.game.sit("u1", "p1", 0, 500)
+        t.game.sit("u2", "p2", 1, 500)
+        await t.maybe_start_hand()
+        first = t.game.hand.hand_id
+        actor = t.game.seats[t.game.hand.to_act].user_id
+        t.game.act(actor, "fold")
+        assert t.game.hand.ended
+        await t.maybe_start_hand()
+&gt;       assert t.game.hand is not None and t.game.hand.hand_id != first, (
+            "no second hand dealt: PokerGame.hand is never reset to None after a hand "
+            "ends, so can_start_hand() stays False forever"
+        )
+E       AssertionError: no second hand dealt: PokerGame.hand is never reset to None after a hand ends, so can_start_hand() stays False forever
+E       assert (HandState(hand_id='2a110f18-9936-4391-accf-17c5503f4847', dealer_seat=0, sb_seat=0, bb_seat=1, small_blind=5, big_blin...eat': 0, 'action': 'blind', 'amount': 5}, {'seat': 1, 'action': 'blind', 'amount': 10}, {'seat': 0, 'action': 'fold'}]) is not None and '2a110f18-9936-4391-accf-17c5503f4847' != '2a110f18-9936-4391-accf-17c5503f4847')
+E        +  where HandState(hand_id='2a110f18-9936-4391-accf-17c5503f4847', dealer_seat=0, sb_seat=0, bb_seat=1, small_blind=5, big_blin...eat': 0, 'action': 'blind', 'amount': 5}, {'seat': 1, 'action': 'blind', 'amount': 10}, {'seat': 0, 'action': 'fold'}]) = &lt;poker.game.PokerGame object at 0xf9809ca6b110&gt;.hand
+E        +    where &lt;poker.game.PokerGame object at 0xf9809ca6b110&gt; = &lt;table_manager.TableRuntime object at 0xf9809ca6b910&gt;.game
+E        +  and   '2a110f18-9936-4391-accf-17c5503f4847' = HandState(hand_id='2a110f18-9936-4391-accf-17c5503f4847', dealer_seat=0, sb_seat=0, bb_seat=1, small_blind=5, big_blin...eat': 0, 'action': 'blind', 'amount': 5}, {'seat': 1, 'action': 'blind', 'amount': 10}, {'seat': 0, 'action': 'fold'}]).hand_id
+E        +    where HandState(hand_id='2a110f18-9936-4391-accf-17c5503f4847', dealer_seat=0, sb_seat=0, bb_seat=1, small_blind=5, big_blin...eat': 0, 'action': 'blind', 'amount': 5}, {'seat': 1, 'action': 'blind', 'amount': 10}, {'seat': 0, 'action': 'fold'}]) = &lt;poker.game.PokerGame object at 0xf9809ca6b110&gt;.hand
+E        +      where &lt;poker.game.PokerGame object at 0xf9809ca6b110&gt; = &lt;table_manager.TableRuntime object at 0xf9809ca6b910&gt;.game
+
+tests/test_table_runtime.py:77: AssertionError</failure></testcase><testcase classname="tests.test_tables.TestTableList" name="test_list_tables_public" time="0.118" /><testcase classname="tests.test_tables.TestTableList" name="test_table_shape_and_no_mongo_id" time="0.096" /><testcase classname="tests.test_ws_gameplay.TestFoldAndRaiseRules" name="test_raise_validation_and_fold_ends_hand" time="43.011"><failure message="requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='poker-play-ca.preview.emergentagent.com', port=443): Read timed out. (read timeout=30)">self = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xfa5d895ad1d0&gt;
+conn = &lt;HTTPSConnection(host='poker-play-ca.preview.emergentagent.com', port=443) at 0xfa5d895ae910&gt;
+method = 'POST', url = '/api/tables/932e2f57-b853-4c4f-9683-13774ea9c386/leave'
+body = None
+headers = {'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-aliv...eMO.mq1E3irqGqSRNHuYI4_7WN.X1sGJ4ByC_LPLAK6p4LDH8GBTQaPaU4hN5VHmJWPOZiuaewbcnmUFjv5jKK.g6LcmR8', 'Content-Length': '0'}
+retries = Retry(total=0, connect=None, read=False, redirect=None, status=None)
+timeout = Timeout(connect=30, read=30, total=None), chunked = False
+response_conn = &lt;HTTPSConnection(host='poker-play-ca.preview.emergentagent.com', port=443) at 0xfa5d895ae910&gt;
+preload_content = False, decode_content = False, enforce_content_length = True
+
+    def _make_request(
+        self,
+        conn: BaseHTTPConnection,
+        method: str,
+        url: str,
+        body: _TYPE_BODY | None = None,
+        headers: typing.Mapping[str, str] | None = None,
+        retries: Retry | None = None,
+        timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
+        chunked: bool = False,
+        response_conn: BaseHTTPConnection | None = None,
+        preload_content: bool = True,
+        decode_content: bool = True,
+        enforce_content_length: bool = True,
+    ) -&gt; BaseHTTPResponse:
+        """
+        Perform a request on a given urllib connection object taken from our
+        pool.
+    
+        :param conn:
+            a connection from one of our connection pools
+    
+        :param method:
+            HTTP request method (such as GET, POST, PUT, etc.)
+    
+        :param url:
+            The URL to perform the request on.
+    
+        :param body:
+            Data to send in the request body, either :class:`str`, :class:`bytes`,
+            an iterable of :class:`str`/:class:`bytes`, or a file-like object.
+    
+        :param headers:
+            Dictionary of custom headers to send, such as User-Agent,
+            If-None-Match, etc. If None, pool headers are used. If provided,
+            these headers completely replace any pool-specific headers.
+    
+        :param retries:
+            Configure the number of retries to allow before raising a
+            :class:`~urllib3.exceptions.MaxRetryError` exception.
+    
+            Pass ``None`` to retry until you receive a response. Pass a
+            :class:`~urllib3.util.retry.Retry` object for fine-grained control
+            over different types of retries.
+            Pass an integer number to retry connection errors that many times,
+            but no other types of errors. Pass zero to never retry.
+    
+            If ``False``, then retries are disabled and any exception is raised
+            immediately. Also, instead of raising a MaxRetryError on redirects,
+            the redirect response will be returned.
+    
+        :type retries: :class:`~urllib3.util.retry.Retry`, False, or an int.
+    
+        :param timeout:
+            If specified, overrides the default timeout for this one
+            request. It may be a float (in seconds) or an instance of
+            :class:`urllib3.util.Timeout`.
+    
+        :param chunked:
+            If True, urllib3 will send the body using chunked transfer
+            encoding. Otherwise, urllib3 will send the body using the standard
+            content-length form. Defaults to False.
+    
+        :param response_conn:
+            Set this to ``None`` if you will handle releasing the connection or
+            set the connection to have the response release it.
+    
+        :param preload_content:
+          If True, the response's body will be preloaded during construction.
+    
+        :param decode_content:
+            If True, will attempt to decode the body based on the
+            'content-encoding' header.
+    
+        :param enforce_content_length:
+            Enforce content length checking. Body returned by server must match
+            value of Content-Length header, if present. Otherwise, raise error.
+        """
+        self.num_requests += 1
+    
+        timeout_obj = self._get_timeout(timeout)
+        timeout_obj.start_connect()
+        conn.timeout = Timeout.resolve_default_timeout(timeout_obj.connect_timeout)
+    
+        try:
+            # Trigger any extra validation we need to do.
+            try:
+                self._validate_conn(conn)
+            except (SocketTimeout, BaseSSLError) as e:
+                self._raise_timeout(err=e, url=url, timeout_value=conn.timeout)
+                raise
+    
+        # _validate_conn() starts the connection to an HTTPS proxy
+        # so we need to wrap errors with 'ProxyError' here too.
+        except (
+            OSError,
+            NewConnectionError,
+            TimeoutError,
+            BaseSSLError,
+            CertificateError,
+            SSLError,
+        ) as e:
+            new_e: Exception = e
+            if isinstance(e, (BaseSSLError, CertificateError)):
+                new_e = SSLError(e)
+            # If the connection didn't successfully connect to it's proxy
+            # then there
+            if isinstance(
+                new_e, (OSError, NewConnectionError, TimeoutError, SSLError)
+            ) and (conn and conn.proxy and not conn.has_connected_to_proxy):
+                new_e = _wrap_proxy_error(new_e, conn.proxy.scheme)
+            raise new_e
+    
+        # conn.request() calls http.client.*.request, not the method in
+        # urllib3.request. It also calls makefile (recv) on the socket.
+        try:
+            conn.request(
+                method,
+                url,
+                body=body,
+                headers=headers,
+                chunked=chunked,
+                preload_content=preload_content,
+                decode_content=decode_content,
+                enforce_content_length=enforce_content_length,
+            )
+    
+        # We are swallowing BrokenPipeError (errno.EPIPE) since the server is
+        # legitimately able to close the connection after sending a valid response.
+        # With this behaviour, the received response is still readable.
+        except BrokenPipeError:
+            pass
+        except OSError as e:
+            # MacOS/Linux
+            # EPROTOTYPE and ECONNRESET are needed on macOS
+            # https://erickt.github.io/blog/2014/11/19/adventures-in-debugging-a-potential-osx-kernel-bug/
+            # Condition changed later to emit ECONNRESET instead of only EPROTOTYPE.
+            if e.errno != errno.EPROTOTYPE and e.errno != errno.ECONNRESET:
+                raise
+    
+        # Reset the timeout for the recv() on the socket
+        read_timeout = timeout_obj.read_timeout
+    
+        if not conn.is_closed:
+            # In Python 3 socket.py will catch EAGAIN and return None when you
+            # try and read into the file pointer created by http.client, which
+            # instead raises a BadStatusLine exception. Instead of catching
+            # the exception and assuming all BadStatusLine exceptions are read
+            # timeouts, check for a zero timeout before making the request.
+            if read_timeout == 0:
+                raise ReadTimeoutError(
+                    self, url, f"Read timed out. (read timeout={read_timeout})"
+                )
+            conn.timeout = read_timeout
+    
+        # Receive the response from the server
+        try:
+&gt;           response = conn.getresponse()
+                       ^^^^^^^^^^^^^^^^^^
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:534: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:571: in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:1415: in getresponse
+    response.begin()
+/usr/local/lib/python3.11/http/client.py:330: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:291: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/socket.py:718: in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/ssl.py:1314: in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;ssl.SSLSocket [closed] fd=-1, family=2, type=1, proto=6&gt;, len = 8192
+buffer = &lt;memory at 0xfa5d904feb00&gt;
+
+    def read(self, len=1024, buffer=None):
+        """Read up to LEN bytes and return them.
+        Return zero-length string on EOF."""
+    
+        self._checkClosed()
+        if self._sslobj is None:
+            raise ValueError("Read on closed or unwrapped SSL socket.")
+        try:
+            if buffer is not None:
+&gt;               return self._sslobj.read(len, buffer)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               TimeoutError: The read operation timed out
+
+/usr/local/lib/python3.11/ssl.py:1166: TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xfa5d895c28d0&gt;
+request = &lt;PreparedRequest [POST]&gt;, stream = False, timeout = 30, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+&gt;           resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:696: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:842: in urlopen
+    retries = retries.increment(
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:498: in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/util/util.py:39: in reraise
+    raise value
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:788: in urlopen
+    response = self._make_request(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:536: in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xfa5d895ad1d0&gt;
+err = TimeoutError('The read operation timed out')
+url = '/api/tables/932e2f57-b853-4c4f-9683-13774ea9c386/leave'
+timeout_value = 30
+
+    def _raise_timeout(
+        self,
+        err: BaseSSLError | OSError | SocketTimeout,
+        url: str,
+        timeout_value: _TYPE_TIMEOUT | None,
+    ) -&gt; None:
+        """Is the error actually a timeout? Will raise a ReadTimeout or pass"""
+    
+        if isinstance(err, SocketTimeout):
+&gt;           raise ReadTimeoutError(
+                self, url, f"Read timed out. (read timeout={timeout_value})"
+            ) from err
+E           urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='poker-play-ca.preview.emergentagent.com', port=443): Read timed out. (read timeout=30)
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:367: ReadTimeoutError
+
+During handling of the above exception, another exception occurred:
+
+self = &lt;test_ws_gameplay.TestFoldAndRaiseRules object at 0xfa5d9050fc10&gt;
+
+    def test_raise_validation_and_fold_ends_hand(self):
+        table = pick_empty_table()
+        tid = table["id"]
+        buy_in = table["buy_in_min"]
+        bb = table["big_blind"]
+    
+        s1, u1, _ = register_user()
+        s2, u2, _ = register_user()
+        ws1 = connect(f"{WS_BASE}/api/ws/table/{tid}?token={ws_token(s1)}")
+        ws2 = connect(f"{WS_BASE}/api/ws/table/{tid}?token={ws_token(s2)}")
+        try:
+            recv_state(ws1)
+            recv_state(ws2)
+            assert s1.post(f"{BASE_URL}/api/tables/{tid}/join", json={"buy_in": buy_in}, timeout=30).status_code == 200
+            assert s2.post(f"{BASE_URL}/api/tables/{tid}/join", json={"buy_in": buy_in}, timeout=30).status_code == 200
+            st1 = drain_latest_state(ws1)
+            st2 = drain_latest_state(ws2)
+            states = {u1["id"]: st1, u2["id"]: st2}
+            sock = {u1["id"]: ws1, u2["id"]: ws2}
+            to_act = st1["hand"]["to_act"]
+            actor = next(p["user_id"] for p in st1["players"] if p["seat"] == to_act)
+            other = u2["id"] if actor == u1["id"] else u1["id"]
+    
+            # out-of-turn action must be rejected
+            sock[other].send(json.dumps({"type": "action", "action": "call"}))
+            time.sleep(0.4)
+            # below-min raise must be rejected
+            sock[actor].send(json.dumps({"type": "action", "action": "raise", "amount": bb + 1}))
+            time.sleep(0.5)
+            after = drain_latest_state(sock[actor], timeout=3)
+            cur = after or states[actor]
+            assert cur["hand"]["current_bet"] == bb, (
+                f"below-min raise accepted: current_bet={cur['hand']['current_bet']}")
+    
+            # valid min raise
+            sock[actor].send(json.dumps({"type": "action", "action": "raise", "amount": 2 * bb}))
+            time.sleep(0.6)
+            st = drain_latest_state(sock[other], timeout=6)
+            assert st and st["hand"]["current_bet"] == 2 * bb, (
+                f"valid min-raise not applied: {st['hand']['current_bet'] if st else None}")
+    
+            # other folds -&gt; hand ends uncontested, raiser wins
+            sock[other].send(json.dumps({"type": "action", "action": "fold"}))
+            time.sleep(1.0)
+            end = drain_latest_state(sock[actor], timeout=6)
+            assert end and end["hand"]["ended"], "hand did not end after fold"
+            assert end["hand"]["winners"] and end["hand"]["winners"][0]["user_id"] == actor, (
+                f"wrong winner after fold: {end['hand']['winners']}")
+            assert end["hand"]["winners"][0]["reason"] == "uncontested"
+        finally:
+            try:
+                ws1.close()
+                ws2.close()
+            except Exception:
+                pass
+&gt;           s1.post(f"{BASE_URL}/api/tables/{tid}/leave", timeout=30)
+
+tests/test_ws_gameplay.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:651: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:784: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xfa5d895c28d0&gt;
+request = &lt;PreparedRequest [POST]&gt;, stream = False, timeout = 30, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+            resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+    
+        except (ProtocolError, OSError) as err:
+            raise ConnectionError(err, request=request)
+    
+        except MaxRetryError as e:
+            if isinstance(e.reason, ConnectTimeoutError):
+                # TODO: Remove this in 3.0.0: see #2811
+                if not isinstance(e.reason, NewConnectionError):
+                    raise ConnectTimeout(e, request=request)
+    
+            if isinstance(e.reason, ResponseError):
+                raise RetryError(e, request=request)
+    
+            if isinstance(e.reason, _ProxyError):
+                raise ProxyError(e, request=request)
+    
+            if isinstance(e.reason, _SSLError):
+                # This branch is for urllib3 v1.22 and later.
+                raise SSLError(e, request=request)
+    
+            raise ConnectionError(e, request=request)
+    
+        except ClosedPoolError as e:
+            raise ConnectionError(e, request=request)
+    
+        except _ProxyError as e:
+            raise ProxyError(e)
+    
+        except (_SSLError, _HTTPError) as e:
+            if isinstance(e, _SSLError):
+                # This branch is for urllib3 versions earlier than v1.22
+                raise SSLError(e, request=request)
+            elif isinstance(e, ReadTimeoutError):
+&gt;               raise ReadTimeout(e, request=request)
+E               requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='poker-play-ca.preview.emergentagent.com', port=443): Read timed out. (read timeout=30)
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:742: ReadTimeout</failure></testcase><testcase classname="tests.test_ws_gameplay.TestReconnect" name="test_reconnect_restores_seat_and_hole_cards" time="3.697" /></testsuite></testsuites>

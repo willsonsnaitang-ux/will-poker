@@ -1,0 +1,67 @@
+{
+  "summary": "Frontend-only iteration 3 verification with two real browser contexts on the 'Niagara Nightly' 25/50 table. Multi-hand gameplay, BB preflop option, winner banner content, post-hand chat, leave flow and Admin search/pagination were all exercised end-to-end. Core functionality PASSES; however a CRITICAL layout regression was found: the poker table element renders at 0x0 px, collapsing the felt, all 6 seats, community cards, winner banner and countdown into an unreadable overlapping stack at 1920x1080.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Table.js — table wrapper / felt",
+        "issue": "CRITICAL layout collapse: measured getBoundingClientRect() of [data-testid=\"poker-table\"] = {width: 0, height: 0}. The felt oval is not rendered at all; all seats, hole cards, community cards, pot, winner-banner and next-hand-countdown are absolutely positioned inside a zero-size box and pile on top of each other in the middle of the screen (see .screenshots/table_layout.png and .screenshots/winner.png). Root cause: the page wrapper (line 161) is `flex flex-col justify-center` and the table container (line 182) is `relative mx-auto` with only `maxWidth: 900` and no explicit width. As a flex item with auto horizontal margins its width becomes shrink-to-fit, and because every child inside the felt is absolutely positioned the intrinsic content width is 0 -> width 0 -> aspectRatio 2/1 -> height 0. Playwright also reports the element as `hidden`, so it fails visibility waits. Fix: add `w-full` (e.g. `relative mx-auto w-full`) to the table container (and to the max-w-3xl action-panel/hand-info wrappers), or use `items-center` on the wrapper instead of relying on mx-auto.",
+        "selector": "[data-testid=\"poker-table\"]",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "Table.js — winner-banner / hand info bar",
+        "issue": "Consequence of the collapse: winner-banner and next-hand-countdown wrap to one word per line ('NEXT / HAND / IN / 4S'), overlap the hero seat cards and are effectively unreadable; the hand info bar renders as 'HAND #5STREET: SHOWDOWNMIN RAISE: 50' (no spacing) because its max-w-3xl wrapper also collapses. Banner text/pill markup itself is correct — it must be re-verified after the width fix.",
+        "selector": "[data-testid=\"winner-banner\"]",
+        "priority": "HIGH"
+      },
+      {
+        "component": "Table.js — vertical centring",
+        "issue": "Because the table has zero height, content sits mid-viewport but there is a large empty black area both above and below; vertical centring cannot be judged until the width bug is fixed.",
+        "selector": "[data-testid=\"poker-table-page\"]",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "Admin.js — admin-user-count vs admin-stats",
+        "issue": "Stats card shows USERS 249 while admin-user-count reports '25 / 100 users' (and '50 / 100' after load-more). The 'M' total appears capped at 100 by the users endpoint, so the denominator contradicts the real user total and load-more can never reach the end of the list.",
+        "selector": "[data-testid=\"admin-user-count\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      { "screen": "Poker table (1920x1080)", "issues": ["Felt/oval completely missing (0x0 element)", "Seats, hole cards and board overlapping in one 200px cluster", "Winner banner + countdown text wrapping one word per line and overlapping hero cards"] }
+    ]
+  },
+  "test_report_links": [
+    "/app/.screenshots/table_layout.png",
+    "/app/.screenshots/winner.png"
+  ],
+  "action_items": [
+    "Add `w-full` to the table container (Table.js line 182) and to the `max-w-3xl mx-auto` action-panel/hand-info wrappers so they don't shrink-to-fit inside the `flex flex-col justify-center` page wrapper — this is the single cause of the whole broken table layout.",
+    "Re-verify winner-banner pill styling, non-overlap with hero cards and vertical centring after the width fix.",
+    "Make admin-user-count total reflect the true user count (currently capped at 100 while stats reports 249)."
+  ],
+  "critical_code_review_comments": [
+    "Table.js: absolutely-positioned-only children + aspect-ratio + auto margins inside a flex column = 0x0 box. Always give such containers an explicit width (w-full) or set the wrapper to items-center.",
+    "Add a lightweight visual regression/size assertion (table width > 400px) so a 0-size felt cannot ship again."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "not tested (per request)", "frontend": "functional flows 100% (6/6), layout 1 critical regression" },
+  "seed_data_creation": "None. Reused existing QA users qa_a1786528450@qa-willpoker.com and qa_b1786528450@qa-willpoker.com (Test@1234); both left the table cleanly at the end.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@willpoker.com / Admin@123 (used once, no lockout risk); qa_a1786528450@qa-willpoker.com and qa_b1786528450@qa-willpoker.com / Test@1234",
+  "verified_passing": [
+    "Two-browser seating: both QA users logged in and seated at Niagara Nightly via buyin-modal -> buyin-confirm.",
+    "TWO consecutive hands played in the browser: hand #5 completed (check-down to showdown) then hand #6 auto-dealt ~4s later with fresh hole cards and rotated dealer button; hand #6 also played to completion and hand #7 followed.",
+    "winner-banner content correct: 'qaB1786528450 wins 100 · Pair' — username + humanised hand name (no TWO_PAIR style strings).",
+    "next-hand-countdown appears after each hand ('Next hand in 4s').",
+    "BB preflop option verified heads-up: after the SB called, board (community-cards) still had 0 cards and the BIG BLIND's check-button was enabled (SB's check disabled) — action correctly returned to the BB before any community card.",
+    "Post-hand responsiveness: chat sent from client A ('hello from A') appeared in client B's chat-panel within ~2s.",
+    "leave-btn showed 'Leaving…' then returned to /lobby in 1.7s with header-bankroll credited back (9,675); second client left cleanly too — no hang.",
+    "Admin page: admin-user-search filters by username and by email (1 / 1 users), admin-user-count renders 'N / M users', admin-load-more loaded rows 26-50 (25 -> 50 rows)."
+  ],
+  "context_for_next_testing_agent": "Functional/WS gameplay is solid — multi-hand, BB option, chat, leave and admin search all verified in-browser in iteration 3, so the next run only needs a short regression pass. The single blocker is the 0x0 poker-table CSS collapse in Table.js (needs w-full). Playwright cannot wait on [data-testid=\"poker-table\"] visibility while the bug exists — wait on poker-table-page instead. Always clear seats before/after a run via POST /api/tables/{id}/leave for both QA users, and never run parallel gameplay tests against the same table.",
+  "rca_of_the_issue": "Table.js line 161 wrapper uses `flex flex-col justify-center`; line 182 child uses `relative mx-auto` + inline maxWidth:900 with no width. Auto left/right margins on a flex item trigger fit-content sizing; the felt's only children are absolutely positioned so content width is 0, giving width:0 and (via aspect-ratio 2/1) height:0. Everything inside is therefore painted over the same point. Reproduce: log in, seat at any table, evaluate document.querySelector('[data-testid=\"poker-table\"]').getBoundingClientRect() -> 0x0."
+}

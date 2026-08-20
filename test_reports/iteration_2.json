@@ -1,0 +1,68 @@
+{
+  "summary": "Full E2E run on Will Poker (backend pytest 69 tests + real two-client WebSocket gameplay + two-browser-context Playwright UI). Auth (register incl. qa-willpoker.com, login, invalid creds, /me, refresh, ws-token, protected-route redirects), lobby/tables, buy-in join + bankroll debit, live heads-up hand (blinds, private hole cards, action routing, min-raise validation, fold win, full preflop->river showdown with correct winner and chip conservation), chat sync, reconnect, hand history, admin page + bankroll adjust, non-admin 403/redirect all verified. CRITICAL: a re-entrant asyncio.Lock deadlock in TableRuntime._post_action_flow permanently bricks a table the moment any hand ends - no further hands are dealt and join/leave hang (504). Backend 60/69 passed; the 9 failures are real defects.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "table_manager.TableRuntime._post_action_flow / ws /api/ws/table/{id}", "issue": "DEADLOCK: server.py ws_table (line 211) and _turn_watchdog (line 78) call _post_action_flow() while holding `table.lock`; _post_action_flow re-enters `async with self.lock` (line 107). asyncio.Lock is NOT reentrant -> the lock is held forever after the FIRST hand ends. Consequences: no new hand ever starts, the WS receive loop of the acting client is blocked (chat/actions ignored), and POST /tables/{id}/leave and /join hang until 504. Tables stay occupied with orphaned seats until backend restart. Reproduced by tests/test_table_runtime.py::test_post_action_flow_does_not_deadlock_table_lock and observed live in the UI (Leave button never responds).", "priority": "CRITICAL"},
+      {"endpoint": "poker/game.py PokerGame (hand lifecycle)", "issue": "PokerGame.hand is never reset to None after hand.ended, so can_start_hand() stays False forever -> only ONE hand per table for the lifetime of the process, even without the deadlock. Verified in UI: table stayed on 'Hand #1 / street: showdown' indefinitely.", "priority": "CRITICAL"},
+      {"endpoint": "poker/game.py _advance_action", "issue": "NLH rule bug: the big blind never gets the option to act/raise preflop when all players just call. Round-completion check `p.bet == current_bet and seat == last_aggressor` closes the street on the BB. Live UI proof: after a single call heads-up, street jumped straight to FLOP with BB never acting.", "priority": "HIGH"},
+      {"endpoint": "poker/game.py sit() during active hand", "issue": "A player who buys in mid-hand gets folded=False with empty hole_cards, so the engine counts them as live in the current hand (they can be handed action / reach showdown with no cards). Should be marked folded/sitting-out until the next hand. tests/test_midhand_join.py", "priority": "HIGH"},
+      {"endpoint": "in-memory table state", "issue": "All seat/stack state is in-memory only; a backend restart (or crash) silently deletes every seated player's stack while the buy-in has already been debited from their bankroll -> play-money chips permanently vanish. No persistence/recovery of seats.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "CORS middleware (server.py)", "issue": "CORS_ORIGINS='*' with allow_credentials=True -> ACAO:* + ACAC:true; browsers reject credentialed requests with a wildcard origin. Must use explicit origins."},
+      {"endpoint": "POST /api/auth/login", "issue": "No brute-force protection/rate-limit: 6+ consecutive wrong passwords all return 401 (playbook requires lockout after 5 failures, 423/429)."},
+      {"endpoint": "POST /api/tables/{id}/leave", "issue": "Chips committed to the current pot are silently forfeited on leave with no warning/response field explaining the loss; also marks the player folded without broadcasting an action log entry."},
+      {"endpoint": "table_manager._persist_hand", "issue": "Dead code / misleading: rake is hardcoded 0 and the comment block claims bankroll updates that never happen. Winners' chips only exist in memory."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Table -> winner-banner", "issue": "Winner is shown as a raw user_id fragment ('8D343E wins 20 · TWO_PAIR') instead of the username; hand category shown as raw enum TWO_PAIR.", "selector": "[data-testid=\"winner-banner\"]", "priority": "MEDIUM"},
+      {"component": "Table -> leave-btn", "issue": "Leave click hangs forever (backend deadlock) with no loading state, no timeout and no error toast - the user is stuck on a dead table with no way out.", "selector": "[data-testid=\"leave-btn\"]", "priority": "HIGH"},
+      {"component": "Table (post-hand)", "issue": "After a hand ends the table shows 'WAITING…' forever with no indication that no further hand will be dealt; no 'next hand starting' countdown.", "selector": "[data-testid=\"action-panel-waiting\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Continuous cash game", "issue": "Only one hand is ever playable per table; subsequent WS actions/chat from the last-acting client are silently dropped because its receive loop is blocked by the server-side deadlock.", "affected_selectors": ["[data-testid=\"action-panel\"]", "[data-testid=\"chat-send\"]", "[data-testid=\"leave-btn\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Table page (1920x1080)", "issues": ["Felt + action panel occupy only the top ~65% of the viewport, leaving a large empty black area below - table should be vertically centred/scaled", "Winner text (gold, small mono) overlaps the hero seat cards and is partially clipped ('WO_PAIR')"]},
+      {"screen": "Admin page", "issues": ["Users table is unpaginated (94 rows rendered) with no search/filter"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ws_gameplay.py",
+    "/app/backend/tests/test_table_runtime.py",
+    "/app/backend/tests/test_midhand_join.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "FIX FIRST: remove the re-entrant lock in TableRuntime._post_action_flow (do not re-acquire self.lock; schedule the next-hand start in a separate task that acquires the lock outside the caller's critical section) - this single bug bricks every table.",
+    "Reset PokerGame.hand = None (and clear per-hand player state) when a hand ends so can_start_hand() can deal hand #2+.",
+    "Give the big blind the preflop option (round is complete only after the last aggressor has acted and action returns to them, tracking players-acted-this-street).",
+    "Mark mid-hand joiners as folded/waiting until the next hand starts.",
+    "Set explicit CORS origins instead of '*' since allow_credentials=True.",
+    "Add login rate-limit/lockout after 5 failed attempts (423/429).",
+    "Persist seat/stack state (or return stacks to bankroll on shutdown) so restarts don't destroy chips.",
+    "Show username (not user_id) and a humanised hand name in winner-banner; add loading/error state + timeout to the Leave action."
+  ],
+  "critical_code_review_comments": [
+    "server.py ws_table holds table.lock across table._post_action_flow(), which itself does `await asyncio.sleep(3)` and re-locks: both re-entrancy AND holding a lock across a long sleep are wrong; the sleep should never happen inside the lock.",
+    "_turn_watchdog has the same re-entrancy issue and additionally never cancels itself when the hand ends, so it can act on a stale hand.",
+    "PokerGame lacks a per-street 'acted' set; betting-round termination is inferred from last_aggressor alone, which is why the BB option is skipped.",
+    "table_manager._persist_hand writes hand docs but no bankroll/stack reconciliation, and the in-memory-only seat state means a restart loses debited buy-ins."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ws_gameplay.py",
+    "/app/backend/tests/test_table_runtime.py",
+    "/app/backend/tests/test_midhand_join.py",
+    "/app/frontend/src/pages/Admin.js (added missing data-testid=\"admin-stats\")",
+    "/app/memory/test_credentials.md (recorded QA multiplayer users)"
+  ],
+  "success_rate": {"backend": "87% (60/69 pytest)", "frontend": "80% (all flows work for the first hand; continuous play + leave broken)"},
+  "seed_data_creation": "Registered QA users qa_a1786528450@qa-willpoker.com and qa_b1786528450@qa-willpoker.com (Test@1234) plus ~20 throwaway TEST_* users from pytest fixtures; adjusted TEST_ac31622a bankroll +5000 via admin UI.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@willpoker.com / Admin@123 ; qa_a1786528450@qa-willpoker.com / Test@1234 ; qa_b1786528450@qa-willpoker.com / Test@1234",
+  "context_for_next_testing_agent": "Verified working: register/login/invalid-creds error, EmailStr accepts qa-willpoker.com (old bug gone), protected-route redirects to /login, WS rejects invalid/missing token and unknown table, lobby grid + search + stake filter, buy-in modal join with bankroll debit, blinds posted, hole-card privacy across two clients (opponent sees card backs / ['?','?']), action routed to correct seat, out-of-turn + below-min raise rejected, valid min-raise applied, fold ends hand uncontested with correct winner, full preflop->river showdown with correct evaluator winner and chip conservation, both clients in sync, chat delivery, reconnect restores seat + hole cards, hand persisted to /api/hands/mine and rendered in Profile hand-history, admin stats/users/bankroll adjust + non-admin 403/redirect. NOT retestable until the deadlock is fixed: 2nd+ hands, leave-btn, sit-out, turn timer auto-fold, side pots over WS. IMPORTANT: after any hand ends, the table is bricked - run `sudo supervisorctl restart backend` to free seats before re-running tests/test_ws_gameplay.py (it needs a table with seated==0).",
+  "rca_of_the_issue": "Root cause of the whole gameplay breakage is one line: table_manager.py:107 `async with self.lock` inside _post_action_flow, which is always called from a context that already holds that same non-reentrant asyncio.Lock (server.py:211-217 and table_manager.py:78-96). The first hand completes normally; on completion _post_action_flow persists the hand, broadcasts, sleeps 3s and then blocks forever trying to re-acquire the lock. The coroutine never returns, so (a) that WebSocket's receive loop stops processing frames, (b) every later join/leave/action on the table waits on the lock and times out at the ingress (504), (c) no new hand is dealt. A second independent defect (PokerGame.hand never reset to None) would still prevent hand #2 even after the deadlock is fixed."
+}

@@ -1,0 +1,73 @@
+{
+  "summary": "Short frontend-only regression pass (iteration 4) on Rideau Rapids (10/20) with two real browser contexts. VERIFIED FIXED: (1) the CRITICAL 0x0 poker-table collapse - [data-testid=\"poker-table\"] now measures exactly 900x450 with all 6 seat slots, community-card placeholders, pot pill and action panel correctly laid out and non-overlapping; (2) winner-banner renders in a bordered gold pill on a single line ('qaA1786528450 wins 40 · Two Pair'), does not overlap the hero hole cards, and next-hand-countdown ('Next hand in 4s') appears with the next hand auto-dealing ~4s later; (3) blinds regression fixed - across hands 3,4,5,6 (and 7-10 played) sb_seat != bb_seat every hand and both SB/BB and the dealer button alternate between the two seats; (4) Admin admin-user-count denominator now matches admin-stats (25 / 304 users vs USERS 304), search filters to 1/1, load-more pages 25 -> 50. Only cosmetic/minor issues remain.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ActionPanel.js — raise/bet button label",
+        "issue": "Preflop BB-option (to_call == 0 but current_bet == 20) renders the aggressive action as 'BET 40' instead of 'RAISE TO 40'. Label logic uses toCall > 0 only; should also treat hand.current_bet > 0 as a raise.",
+        "selector": "[data-testid=\"raise-button\"]",
+        "priority": "LOW"
+      },
+      {
+        "component": "ActionPanel.js — initial amount state",
+        "issue": "Transient 'BET 0' with bet-input=0 / slider min=0 observed for a moment at the start of a hand (panel mounts with legal_actions={} so amount initialises to 0 before the first state frame). Never persisted in the measured loop (18/18 sampled states had correct min 20/40), but a user clicking during that flash would submit bet 0. Suggest disabling raise-button while min_raise_total is 0.",
+        "selector": "[data-testid=\"bet-input\"]",
+        "priority": "LOW"
+      },
+      {
+        "component": "Table.js — empty seat slots",
+        "issue": "Only occupied seats expose data-testid=\"seat-{n}\"; the four empty 'SEAT n' placeholders have no data-testid, so seat-2..seat-5 queries return null (they do render visually and are correctly positioned around the oval).",
+        "selector": "[data-testid=\"seat-2\"]",
+        "priority": "LOW"
+      },
+      {
+        "component": "Table.js — pot pill at showdown",
+        "issue": "After a hand ends the pot pill shows 'POT 0' next to the winner banner instead of retaining the final pot amount, which looks broken next to 'wins 40'.",
+        "selector": "[data-testid=\"pot-amount\"]",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Poker table @1920x1080",
+        "issues": [
+          "Vertical balance is slightly top-heavy: header starts at y~208 and the hand info bar ends at y~770, leaving ~300px of empty black below vs ~150px above (justify-center is offset by the min-h calc). Cosmetic only.",
+          "Everything else looks correct: 900x450 felt oval, 6 seat slots, 5 board placeholders, gold-bordered winner pill, full-width (768px) action panel and hand info bar with proper 'HAND #10  STREET: SHOWDOWN  MIN RAISE: 20' spacing."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/clear_seats.py",
+    "/app/.screenshots/i4_table_A.png",
+    "/app/.screenshots/i4_winner_1.png",
+    "/app/.screenshots/i4_admin.png"
+  ],
+  "action_items": [
+    "Optional polish: label BB-option raise as 'Raise to' (ActionPanel toCall>0 check should include hand.current_bet>0).",
+    "Optional polish: guard raise-button/bet-input against the transient amount=0 state on hand start.",
+    "Optional polish: add data-testid=\"seat-{n}\" to empty seat placeholders for testability.",
+    "Optional polish: keep the final pot amount visible at showdown instead of 'POT 0'."
+  ],
+  "critical_code_review_comments": [
+    "game.py legal_actions is returned for the viewer regardless of whose turn it is; the UI relies solely on the `disabled` prop to prevent out-of-turn clicks. Consider returning {} unless hand.to_act == viewer seat as defence in depth.",
+    "Add a size assertion (poker-table width > 400) to any UI smoke test so the 0x0 felt regression cannot ship again."
+  ],
+  "updated_files": ["/app/backend/tests/clear_seats.py"],
+  "success_rate": { "backend": "not tested (per request)", "frontend": "100% of the 4 requested regression items pass (layout, winner banner, blinds rotation, admin count/search/load-more)" },
+  "seed_data_creation": "None. Reused qa_a1786528450@qa-willpoker.com / qa_b1786528450@qa-willpoker.com (Test@1234); both force-left all 4 tables before and after the run via /api/tables/{id}/leave (script /app/backend/tests/clear_seats.py).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@willpoker.com / Admin@123; qa_a1786528450@qa-willpoker.com and qa_b1786528450@qa-willpoker.com / Test@1234",
+  "verified_passing": [
+    "poker-table getBoundingClientRect = {w:900, h:450, top:260, left:510} at 1920x1080 (was 0x0) — no overlap between rendered seats; community-cards 332x84, pot pill, action-panel 768x173, hand info bar 768px with correct spacing.",
+    "winner-banner: 'qaA1786528450 wins 40 · Two Pair', 296x30 bordered rounded pill (radius 9.6px), single visual line, overlaps_hero=false; next-hand-countdown 'Next hand in 4s'; next hand dealt automatically ~4s later (hands 1-10 observed sequentially).",
+    "Blinds rotation from WS state: hand 3 sb=0 bb=1 dealer=0, hand 4 sb=1 bb=0 dealer=1, hand 5 sb=0 bb=1 dealer=0, hand 6 sb=1 bb=0 dealer=1 — zero hands with sb==bb; seat bet chips and stacks reflect this on screen.",
+    "min_raise_total from WS across hands 6-10: preflop 40, postflop 20 (correct); Raise to 40 shown when facing the SB.",
+    "Admin: admin-stats USERS 304 and admin-user-count '25 / 304 users' now agree; search 'qaA1786528450' -> '1 / 1 users'; admin-load-more -> '50 / 304 users'."
+  ],
+  "context_for_next_testing_agent": "Iteration 4 confirmed the layout, winner banner, blinds rotation and admin user-count fixes in-browser; only 4 cosmetic LOW items remain (BET vs RAISE label on BB option, transient bet amount 0 at hand start, missing data-testid on empty seats, POT 0 at showdown). Use /app/backend/tests/clear_seats.py to unseat QA users before/after any table test. Table used: Rideau Rapids fab6ec67-2ab7-4cb9-a8b2-86e97d9139d2 (hand counter now at ~#10).",
+  "rca_of_the_issue": "Previous 0x0 collapse was caused by fit-content sizing of the mx-auto flex child; the added `w-full` on the table container and on the max-w-3xl action/hand-info wrappers resolves it (measured 900x450). Blinds bug fix (deriving SB/BB from the active-seat rotation in game.start_hand) verified live via WS state over 4 consecutive hands."
+}
