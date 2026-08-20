@@ -1,1 +1,14 @@
 will-poker.zip
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local test backups
+*.backup

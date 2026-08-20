@@ -9,13 +9,11 @@ import requests
 from dotenv import dotenv_values
 
 # make backend importable for engine unit tests
-sys.path.insert(0, "/app/backend")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-frontend_env = dotenv_values("/app/frontend/.env")
+frontend_env = dotenv_values(Path(__file__).resolve().parents[2] / "frontend" / ".env")
 _base = os.environ.get("REACT_APP_BACKEND_URL") or frontend_env.get("REACT_APP_BACKEND_URL")
-if not _base:
-    raise RuntimeError("REACT_APP_BACKEND_URL missing")
-BASE_URL = _base.rstrip("/")
+BASE_URL = _base.rstrip("/") if _base else None
 
 
 @pytest.fixture(scope="session")
@@ -25,7 +23,7 @@ def base_url():
 
 @pytest.fixture(scope="session")
 def test_credentials():
-    p = Path("/app/memory/test_credentials.md")
+    p = Path(__file__).resolve().parents[2] / "memory" / "test_credentials.md"
     if not p.exists():
         pytest.skip("missing test_credentials.md")
     c = p.read_text(encoding="utf-8")

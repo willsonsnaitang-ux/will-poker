@@ -19,7 +19,7 @@ def test_cors_allows_credentials_with_explicit_origin():
     headers to '*' on the public URL, which application code cannot control.
     """
     r = requests.get(
-        "http://localhost:8001/api/health", headers={"Origin": BASE_URL}, timeout=30
+        f"{BASE_URL}/api/health", headers={"Origin": BASE_URL}, timeout=30
     )
     acao = r.headers.get("access-control-allow-origin")
     acac = r.headers.get("access-control-allow-credentials")

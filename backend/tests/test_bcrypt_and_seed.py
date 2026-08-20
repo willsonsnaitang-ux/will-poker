@@ -1,11 +1,15 @@
 """Password hash storage format + admin seeding (direct DB inspection)."""
 import asyncio
 import os
+from pathlib import Path
 
 from dotenv import dotenv_values
 from motor.motor_asyncio import AsyncIOMotorClient
 
-env = dotenv_values("/app/backend/.env")
+# Load the project's backend/.env regardless of where pytest is executed.
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+env = dotenv_values(BACKEND_DIR / ".env")
+
 MONGO_URL = os.environ.get("MONGO_URL") or env.get("MONGO_URL")
 DB_NAME = os.environ.get("DB_NAME") or env.get("DB_NAME")
 

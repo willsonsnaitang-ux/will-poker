@@ -48,13 +48,17 @@ def decode_token(token: str) -> dict:
 
 
 def _set_cookies(response: Response, access: str, refresh: str):
+    # Local development uses HTTP; production should use HTTPS.
+    secure = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+    samesite = "none" if secure else "lax"
+
     response.set_cookie(
-        "access_token", access, httponly=True, secure=True,
-        samesite="none", max_age=60 * 60 * 24, path="/",
+        "access_token", access, httponly=True, secure=secure,
+        samesite=samesite, max_age=60 * 60 * 24, path="/",
     )
     response.set_cookie(
-        "refresh_token", refresh, httponly=True, secure=True,
-        samesite="none", max_age=60 * 60 * 24 * 7, path="/",
+        "refresh_token", refresh, httponly=True, secure=secure,
+        samesite=samesite, max_age=60 * 60 * 24 * 7, path="/",
     )
 
 
@@ -202,9 +206,11 @@ def build_auth_router(db):
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         access = create_access_token(user["id"], user["email"])
+        secure = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+        samesite = "none" if secure else "lax"
         response.set_cookie(
-            "access_token", access, httponly=True, secure=True,
-            samesite="none", max_age=60 * 60 * 24, path="/",
+            "access_token", access, httponly=True, secure=secure,
+            samesite=samesite, max_age=60 * 60 * 24, path="/",
         )
         return {"ok": True}
 
